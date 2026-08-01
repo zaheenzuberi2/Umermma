@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Umer Wazir MMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--onyx:#0A0A0B;--bone:#EDE9E1;--ember:#D6472A;--brass:#B98F52;--line:rgba(237,233,225,0.14);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--onyx);color:var(--bone);font-family:'Archivo',sans-serif;min-height:100vh;}
+  a{color:inherit;}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 100px;}
+  h1{font-family:'Anton';text-transform:uppercase;font-size:clamp(24px,4vw,34px);}
+  h1 span{color:var(--ember);}
+  .sub{font-family:'JetBrains Mono';font-size:12px;opacity:0.55;margin-top:6px;letter-spacing:0.05em;}
+
+  /* LOGIN */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .login-card{width:100%;max-width:380px;border:1px solid var(--line);padding:36px;}
+  .login-card h1{margin-bottom:6px;}
+  .field{margin:20px 0;}
+  .field label{display:block;font-family:'JetBrains Mono';font-size:11px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.6;margin-bottom:8px;}
+  .field input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);color:var(--bone);font-size:15px;padding:10px 0;font-family:'Archivo';}
+  .field input:focus{outline:none;border-bottom-color:var(--brass);}
+  .btn{margin-top:10px;display:inline-flex;align-items:center;gap:8px;background:var(--ember);color:var(--onyx);border:none;padding:14px 26px;font-family:'JetBrains Mono';font-size:12.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;width:100%;justify-content:center;}
+  .btn:hover{background:#e8613f;}
+  .btn.secondary{background:transparent;border:1px solid var(--line);color:var(--bone);width:auto;}
+  .btn.danger{background:transparent;border:1px solid var(--ember);color:var(--ember);width:auto;padding:8px 16px;font-size:11px;}
+  .error-msg{color:var(--ember);font-family:'JetBrains Mono';font-size:12.5px;margin-top:14px;min-height:1.2em;}
+
+  /* DASHBOARD */
+  #dashboard{display:none;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid var(--line);}
+  .tabs{display:flex;gap:4px;margin:32px 0;border:1px solid var(--line);width:fit-content;}
+  .tab{padding:12px 22px;font-family:'JetBrains Mono';font-size:12.5px;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;background:transparent;color:var(--bone);border:none;opacity:0.6;}
+  .tab.active{opacity:1;background:rgba(237,233,225,0.06);color:var(--brass);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{border:1px solid var(--line);padding:22px;margin-bottom:14px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start;}
+  .card .meta{font-family:'JetBrains Mono';font-size:11px;opacity:0.5;margin-bottom:6px;}
+  .card .body{font-size:14.5px;line-height:1.6;}
+  .card .body b{font-family:'Anton';font-size:16px;display:block;margin-bottom:4px;}
+  .unread{border-left:3px solid var(--ember);}
+  .empty{opacity:0.5;font-family:'JetBrains Mono';font-size:13px;padding:30px 0;}
+
+  form.add-form{border:1px solid var(--line);padding:24px;margin-bottom:32px;display:grid;gap:16px;grid-template-columns:1fr 1fr;}
+  form.add-form .full{grid-column:1/-1;}
+  form.add-form label{display:block;font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;opacity:0.55;margin-bottom:6px;}
+  form.add-form input, form.add-form select, form.add-form textarea{width:100%;background:transparent;border:1px solid var(--line);color:var(--bone);padding:10px 12px;font-family:'Archivo';font-size:14px;}
+  form.add-form input[type=file]{border:1px dashed var(--line);padding:16px;}
+  @media(max-width:600px){form.add-form{grid-template-columns:1fr;}}
+
+  .thumb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;}
+  .thumb{position:relative;aspect-ratio:1;overflow:hidden;border:1px solid var(--line);}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb button{position:absolute;top:6px;right:6px;background:rgba(10,10,11,0.85);color:var(--ember);border:1px solid var(--ember);width:26px;height:26px;cursor:pointer;font-size:14px;}
+
+  .status-msg{font-family:'JetBrains Mono';font-size:12px;color:var(--brass);margin-top:10px;min-height:1.2em;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h1>ADMIN <span>LOGIN</span></h1>
+    <div class="sub">Umer Wazir MMA — Management Panel</div>
+    <form id="loginForm">
+      <div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="username"></div>
+      <div class="field"><label for="password">Password</label><input id="password" type="password" required autocomplete="current-password"></div>
+      <button class="btn" type="submit">Log In</button>
+    </form>
+    <div class="error-msg" id="loginError"></div>
+    <div class="sub" style="margin-top:20px;">Don't have a login yet? See SETUP-GUIDE.md, Step 5.</div>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="topbar">
+    <h1 style="font-size:20px;">UMER WAZIR <span>ADMIN</span></h1>
+    <button class="btn danger" id="logoutBtn">Log Out</button>
+  </div>
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab active" data-tab="messages">Messages</button>
+      <button class="tab" data-tab="gallery">Gallery</button>
+      <button class="tab" data-tab="tournaments">Tournaments</button>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="panel active" id="panel-messages">
+      <div id="messagesList" class="empty">Loading messages…</div>
+    </div>
+
+    <!-- GALLERY -->
+    <div class="panel" id="panel-gallery">
+      <form class="add-form" id="galleryForm">
+        <div class="full"><label>Photo file</label><input type="file" id="galleryFile" accept="image/*" required></div>
+        <div class="full"><label>Caption</label><input type="text" id="galleryCaption" placeholder="e.g. Fight Week — Lisbon"></div>
+        <div class="full"><button class="btn" type="submit" style="width:auto;">Upload Photo</button></div>
+        <div class="full status-msg" id="galleryStatus"></div>
+      </form>
+      <div id="galleryGrid" class="thumb-grid"></div>
+    </div>
+
+    <!-- TOURNAMENTS -->
+    <div class="panel" id="panel-tournaments">
+      <form class="add-form" id="tourneyForm">
+        <div><label>Opponent name</label><input type="text" id="t-opponent" required></div>
+        <div><label>Opponent country</label><input type="text" id="t-country" placeholder="e.g. Afghanistan"></div>
+        <div><label>Result</label><select id="t-result"><option value="W">Win</option><option value="L">Loss</option></select></div>
+        <div><label>Event name</label><input type="text" id="t-event" placeholder="e.g. IFT Fight Pass 10"></div>
+        <div><label>Date</label><input type="date" id="t-date"></div>
+        <div class="full"><label>Notes</label><input type="text" id="t-notes" placeholder="e.g. TKO, Round 2"></div>
+        <div class="full"><button class="btn" type="submit" style="width:auto;">Add Fight Record</button></div>
+        <div class="full status-msg" id="tourneyStatus"></div>
+      </form>
+      <div id="tourneyList" class="empty">Loading fight records…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // 1) PASTE YOUR SUPABASE PROJECT DETAILS HERE (see SETUP-GUIDE.md, Step 2)
+  // ============================================================
+  const SUPABASE_URL = 'https://cpcjteliqsfeywwhptad.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_r1p8kL0ljSbpI0Y_199uYw_2l5SoYbU';
+  // ============================================================
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginScreen = document.getElementById('loginScreen');
+  const dashboard = document.getElementById('dashboard');
+  const loginForm = document.getElementById('loginForm');
+  const loginError = document.getElementById('loginError');
+
+  async function checkSession(){
+    const { data } = await sb.auth.getSession();
+    if(data.session){
+      showDashboard();
+    } else {
+      loginScreen.style.display = 'flex';
+      dashboard.style.display = 'none';
+    }
+  }
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.textContent = '';
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      loginError.textContent = error.message;
+    } else {
+      showDashboard();
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    location.reload();
+  });
+
+  function showDashboard(){
+    loginScreen.style.display = 'none';
+    dashboard.style.display = 'block';
+    loadMessages();
+    loadGallery();
+    loadTournaments();
+  }
+
+  // TABS
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---------- MESSAGES ----------
+  async function loadMessages(){
+    const el = document.getElementById('messagesList');
+    el.className = 'empty';
+    el.textContent = 'Loading messages…';
+    const { data, error } = await sb.from('messages').select('*').order('created_at', { ascending: false });
+    if(error){ el.textContent = 'Error loading messages: ' + error.message; return; }
+    if(!data.length){ el.textContent = 'No messages yet.'; return; }
+    el.className = '';
+    el.innerHTML = data.map(m => `
+      <div class="card ${m.is_read ? '' : 'unread'}">
+        <div class="body">
+          <b>${escapeHtml(m.name)}${m.organization ? ' — ' + escapeHtml(m.organization) : ''}</b>
+          <div class="meta">${new Date(m.created_at).toLocaleString()}</div>
+          <div>${escapeHtml(m.message)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${!m.is_read ? `<button class="btn secondary" onclick="markRead('${m.id}')">Mark Read</button>` : ''}
+          <button class="btn danger" onclick="deleteMessage('${m.id}')">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.markRead = async function(id){
+    await sb.from('messages').update({ is_read: true }).eq('id', id);
+    loadMessages();
+  };
+  window.deleteMessage = async function(id){
+    if(!confirm('Delete this message?')) return;
+    await sb.from('messages').delete().eq('id', id);
+    loadMessages();
+  };
+
+  // ---------- GALLERY ----------
+  async function loadGallery(){
+    const grid = document.getElementById('galleryGrid');
+    const { data, error } = await sb.from('gallery_photos').select('*').order('created_at', { ascending: false });
+    if(error){ grid.innerHTML = '<div class="empty">Error: ' + error.message + '</div>'; return; }
+    grid.innerHTML = data.map(p => `
+      <div class="thumb">
+        <img src="${p.image_url}" alt="${escapeHtml(p.caption || '')}">
+        <button onclick="deletePhoto('${p.id}')" title="Delete">×</button>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('galleryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = document.getElementById('galleryStatus');
+    const file = document.getElementById('galleryFile').files[0];
+    const caption = document.getElementById('galleryCaption').value;
+    if(!file){ status.textContent = 'Choose a file first.'; return; }
+    status.textContent = 'Uploading…';
+    const path = `${Date.now()}-${file.name.replace(/\s+/g,'-')}`;
+    const { error: uploadError } = await sb.storage.from('gallery').upload(path, file);
+    if(uploadError){ status.textContent = 'Upload failed: ' + uploadError.message; return; }
+    const { data: urlData } = sb.storage.from('gallery').getPublicUrl(path);
+    const { error: dbError } = await sb.from('gallery_photos').insert({ image_url: urlData.publicUrl, caption });
+    if(dbError){ status.textContent = 'Saved file but failed to save record: ' + dbError.message; return; }
+    status.textContent = 'Photo added.';
+    document.getElementById('galleryForm').reset();
+    loadGallery();
+  });
+
+  window.deletePhoto = async function(id){
+    if(!confirm('Delete this photo?')) return;
+    await sb.from('gallery_photos').delete().eq('id', id);
+    loadGallery();
+  };
+
+  // ---------- TOURNAMENTS ----------
+  async function loadTournaments(){
+    const el = document.getElementById('tourneyList');
+    const { data, error } = await sb.from('tournaments').select('*').order('event_date', { ascending: false });
+    if(error){ el.className='empty'; el.textContent = 'Error: ' + error.message; return; }
+    if(!data.length){ el.className='empty'; el.textContent = 'No fight records added yet.'; return; }
+    el.className = '';
+    el.innerHTML = data.map(t => `
+      <div class="card">
+        <div class="body">
+          <b>${t.result === 'W' ? 'W' : 'L'} — ${escapeHtml(t.opponent)} ${t.opponent_country ? '(' + escapeHtml(t.opponent_country) + ')' : ''}</b>
+          <div class="meta">${t.event_name ? escapeHtml(t.event_name) + ' · ' : ''}${t.event_date || 'date not set'}</div>
+          <div>${escapeHtml(t.notes || '')}</div>
+        </div>
+        <button class="btn danger" onclick="deleteTourney('${t.id}')">Delete</button>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('tourneyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const status = document.getElementById('tourneyStatus');
+    const payload = {
+      opponent: document.getElementById('t-opponent').value,
+      opponent_country: document.getElementById('t-country').value,
+      result: document.getElementById('t-result').value,
+      event_name: document.getElementById('t-event').value,
+      event_date: document.getElementById('t-date').value || null,
+      notes: document.getElementById('t-notes').value,
+    };
+    const { error } = await sb.from('tournaments').insert(payload);
+    if(error){ status.textContent = 'Failed: ' + error.message; return; }
+    status.textContent = 'Fight record added.';
+    document.getElementById('tourneyForm').reset();
+    loadTournaments();
+  });
+
+  window.deleteTourney = async function(id){
+    if(!confirm('Delete this record?')) return;
+    await sb.from('tournaments').delete().eq('id', id);
+    loadTournaments();
+  };
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  checkSession();
+</script>
+
+</body>
+</html>
